@@ -2,6 +2,19 @@ class CommentingPolicy
   pattr_initialize :pull_request
 
   def allowed_for?(violation)
+    tag = [
+      violation.build.repo.full_github_name,
+      violation.build.pull_request_number
+    ].join("-")
+
+    all_comments = violation.messages
+    previous_comments = previous_comments_on_line(violation).map(&:body)
+
+    Rails.logger.tagged("COMMENT_CHECK", tag) do
+      Rails.logger.info "All: #{all_comments.inspect}"
+      Rails.logger.info "Existing: #{previous_comments.inspect}"
+    end
+
     unreported_violation_messages(violation).any?
   end
 
