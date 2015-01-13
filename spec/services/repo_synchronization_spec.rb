@@ -94,6 +94,24 @@ describe RepoSynchronization do
         to eq membership.repo.github_id
     end
 
+    it "deactivates a repo if it was deleted from github" do
+      repo = create(:repo, :active)
+      membership = create(:membership, repo: repo)
+      user = membership.user
+      create(:subscription, user: user, repo: repo)
+      github_token = "githubtoken"
+      api = double(:github_api, repos: [])
+      allow(GithubApi).to receive(:new).and_return(api)
+      allow(RepoSubscriber).to receive(:unsubscribe)
+      synchronization = RepoSynchronization.new(user, github_token)
+
+      synchronization.start
+      repo.reload
+
+      expect(repo).not_to be_active
+      expect(RepoSubscriber).to have_received(:unsubscribe).with(repo, user)
+    end
+
     describe 'when a repo membership already exists' do
       it 'creates another membership' do
         first_membership = create(:membership)

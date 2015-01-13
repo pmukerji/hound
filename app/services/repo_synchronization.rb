@@ -9,11 +9,22 @@ class RepoSynchronization
   end
 
   def start
+    existing_repos = user.repos.to_a
     user.repos.clear
 
     api.repos.each do |resource|
       attributes = repo_attributes(resource.to_hash)
-      user.repos << Repo.find_or_create_with(attributes)
+      repo = Repo.find_or_create_with(attributes)
+      user.repos << repo
+      existing_repos.delete(repo)
+    end
+
+    existing_repos.each do |repo|
+      repo.deactivate
+
+      if repo.subscription
+        RepoSubscriber.unsubscribe(repo, user)
+      end
     end
   end
 
