@@ -99,6 +99,8 @@ describe RepoSynchronization do
       membership = create(:membership, repo: repo)
       user = membership.user
       create(:subscription, user: user, repo: repo)
+      ignored_repo = create(:repo, :active)
+      create(:subscription, user: user, repo: ignored_repo)
       github_token = "githubtoken"
       api = double(:github_api, repos: [])
       allow(GithubApi).to receive(:new).and_return(api)
@@ -110,6 +112,7 @@ describe RepoSynchronization do
 
       expect(repo).not_to be_active
       expect(RepoSubscriber).to have_received(:unsubscribe).with(repo, user)
+      expect(ignored_repo).to be_active
     end
 
     describe 'when a repo membership already exists' do
